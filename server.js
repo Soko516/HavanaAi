@@ -150,5 +150,31 @@ app.post("/api/image",async(req,res)=>{
 });
 
 app.post("/api/reset",(req,res)=>{sessions.delete(String(req.body?.sessionId||"default"));res.json({ok:true});});
+
+const businessOrders=[];
+const BUSINESS_WHATSAPP=String(process.env.BUSINESS_WHATSAPP||"255700000000").replace(/\\D/g,"");
+const businessPackages=[
+  {id:"starter",name:"Starter",price:"Bei itaelezwa",items:["Posters 3","Captions 5","WhatsApp Status 5"]},
+  {id:"business",name:"Business",price:"Bei itaelezwa",items:["Posters 8","Videos/Reels 4","Captions 15","Catalogue ndogo"]},
+  {id:"premium",name:"Premium",price:"Bei itaelezwa",items:["Content ya mwezi","Posters + videos + captions","Catalogue","Landing page/website"]}
+];
+app.get("/api/business/catalogue",(req,res)=>res.json({ok:true,whatsapp:BUSINESS_WHATSAPP,packages:businessPackages}));
+app.post("/api/business/orders",(req,res)=>{
+  const b=req.body||{};
+  const name=String(b.name||"").trim(),phone=String(b.phone||"").trim(),pkg=String(b.package||"").trim(),details=String(b.details||"").trim();
+  if(!name||!phone||!pkg)return res.status(400).json({error:"Name, phone and package are required."});
+  const selected=businessPackages.find(x=>x.id===pkg);
+  if(!selected)return res.status(400).json({error:"Invalid package."});
+  const id="HB-"+Date.now().toString(36).toUpperCase()+"-"+crypto.randomBytes(2).toString("hex").toUpperCase();
+  const order={id,name,phone,package:pkg,packageName:selected.name,details,status:"new",createdAt:new Date().toISOString()};
+  businessOrders.unshift(order);
+  res.status(201).json({ok:true,order,whatsapp:BUSINESS_WHATSAPP});
+});
+app.get("/api/business/orders",(req,res)=>{
+  const key=String(req.headers["x-admin-key"]||"");
+  if(!process.env.BUSINESS_ADMIN_KEY||key!==process.env.BUSINESS_ADMIN_KEY)return res.status(401).json({error:"Unauthorized"});
+  res.json({ok:true,total:businessOrders.length,orders:businessOrders});
+});
+
 app.get("*",(req,res)=>res.sendFile(path.join(__dirname,"index.html")));
 app.listen(PORT,()=>console.log("HavanaAi listening on "+PORT));
