@@ -84,7 +84,7 @@ app.post("/api/chat",async(req,res)=>{
     const r=await fetch(url,{
       method:"POST",
       headers:{"Content-Type":"application/json","Authorization":"Bearer "+key},
-      body:JSON.stringify({model,messages,temperature:mode==="quick"?0.2:0.4})
+      body:JSON.stringify({model,messages})
     });
     const raw=await r.text();
     let d={}; try{d=JSON.parse(raw)}catch(_){}
