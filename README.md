@@ -1,27 +1,31 @@
 # HavanaAi
 
-HavanaAi is an adults-only (18+) AI workspace starter with a consent-first video selection flow.
+HavanaAi is a standalone AI-powered content discovery app, intentionally separate from SokoAds.
 
-## Adult-content safety
+## Included
+- AI chat endpoint with provider integration through server-side environment variables
+- Content discovery API with category filtering
+- Mobile-first responsive interface
+- Dark/light mode
+- PWA manifest and service worker
+- Render deployment configuration
+- Local fallback mode when no AI provider is configured
 
-The app now includes:
+## Deploy
+Set these environment variables on your hosting provider:
+- AI_API_URL
+- AI_API_KEY
+- AI_MODEL (optional)
 
-- An 18+ entry gate
-- A consent acknowledgement before selecting adult video
-- Video-only file filtering and a 500 MB client-side limit
-- Clear warnings against minors and non-consensual content
-- Demo mode that does **not** upload or store the selected file
+Never put API keys in browser code or commit them to GitHub.
 
-The age gate is only a browser UX gate, not legal age verification. Before accepting real uploads, add server-side age/identity verification appropriate to each jurisdiction, consent and rights verification, moderation, hashing/scan pipelines, reporting and takedown workflows, encryption, access controls, audit logs, retention/deletion controls, and a process to detect and remove illegal material. Never permit sexual content involving minors, exploitation, coercion, trafficking, or non-consensual intimate imagery.
-
-## Run locally
-
+## Local
 ```bash
-python3 -m http.server 8080
+npm install
+npm start
 ```
 
-Open http://localhost:8080. The selected video remains local and is discarded when the upload dialog closes.
+Then open the displayed local URL.
 
-## Production integration
-
-This static demo intentionally does not transmit media. Use a secure backend with authenticated, private object storage and server-side validation before connecting the upload control. Keep AI/provider keys off the client, and consult qualified legal counsel about adult-content, privacy, copyright, and data-protection obligations.
+## Note
+The app is a general-purpose content discovery assistant. It does not share code or deployment resources with SokoAds.
