@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="HavanaAi — a focused AI workspace for your ideas and conversations." />
+  <title>HavanaAi — Your AI workspace</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand"><span class="brand-mark">✦</span><span>Havana<span class="brand-accent">Ai</span></span></div>
+      <button class="new-chat" id="newChat">＋ New conversation</button>
+      <div class="sidebar-section"><p class="eyebrow">Workspace</p><nav><button class="nav-item active">⌂ <span>Chat</span></button><button class="nav-item">◈ <span>Saved prompts</span></button><button class="nav-item">⚙ <span>Settings</span></button></nav></div>
+      <div class="sidebar-footer"><div class="avatar">S</div><div><strong>Soko516</strong><small>Personal workspace</small></div><button class="more">•••</button></div>
+    </aside>
+    <main class="main-content">
+      <header class="topbar"><div><p class="eyebrow">HAVANAAI WORKSPACE</p><h1>Good to see you<span class="accent">.</span></h1></div><div class="status"><span class="status-dot"></span>Ready to help</div></header>
+      <section class="chat-area" id="chatArea">
+        <div class="welcome" id="welcome"><div class="welcome-icon">✦</div><p class="eyebrow">YOUR AI ASSISTANT</p><h2>What will we create today?</h2><p class="subtext">Ask a question, explore an idea, or get help turning your next thought into something real.</p><div class="suggestions"><button data-prompt="Help me plan a new project">Plan a new project <span>→</span></button><button data-prompt="Give me three creative ideas for today">Find creative ideas <span>→</span></button><button data-prompt="Explain something simply">Explain something simply <span>→</span></button></div></div>
+        <div id="messages" class="messages" aria-live="polite"></div>
+      </section>
+      <form class="composer" id="composer"><div class="input-wrap"><textarea id="prompt" rows="1" placeholder="Message HavanaAi..." aria-label="Message HavanaAi"></textarea><button class="send" type="submit" aria-label="Send message">↑</button></div><p>HavanaAi can make mistakes. Check important information.</p></form>
+    </main>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>
