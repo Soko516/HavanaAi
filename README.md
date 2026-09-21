@@ -1,31 +1,27 @@
 # HavanaAi
 
-HavanaAi is a polished, responsive AI workspace that runs immediately in any modern browser.
+HavanaAi is an adults-only (18+) AI workspace starter with a consent-first video selection flow.
 
-## Features
+## Adult-content safety
 
-- Clean responsive chat workspace with mobile support
-- Prompt suggestion cards and keyboard-friendly composer
-- Press **Enter** to send or **Shift + Enter** for a new line
-- Conversation persistence in the browser using `localStorage`
-- Clear and start-new-conversation controls
-- Safe rendering of user text to prevent HTML injection
-- Ready for GitHub Pages
+The app now includes:
+
+- An 18+ entry gate
+- A consent acknowledgement before selecting adult video
+- Video-only file filtering and a 500 MB client-side limit
+- Clear warnings against minors and non-consensual content
+- Demo mode that does **not** upload or store the selected file
+
+The age gate is only a browser UX gate, not legal age verification. Before accepting real uploads, add server-side age/identity verification appropriate to each jurisdiction, consent and rights verification, moderation, hashing/scan pipelines, reporting and takedown workflows, encryption, access controls, audit logs, retention/deletion controls, and a process to detect and remove illegal material. Never permit sexual content involving minors, exploitation, coercion, trafficking, or non-consensual intimate imagery.
 
 ## Run locally
-
-Open `index.html` directly, or serve the folder locally:
 
 ```bash
 python3 -m http.server 8080
 ```
 
-Then visit http://localhost:8080.
+Open http://localhost:8080. The selected video remains local and is discarded when the upload dialog closes.
 
-## Connect a real AI model
+## Production integration
 
-The included replies are a local demo so the app works without configuration. To use a real model, replace the demo response in `app.js` with a request to your own secure backend. Keep provider API keys on the server, never in browser code.
-
-## Deploy
-
-Enable GitHub Pages in the repository settings and choose the `main` branch as the source.
+This static demo intentionally does not transmit media. Use a secure backend with authenticated, private object storage and server-side validation before connecting the upload control. Keep AI/provider keys off the client, and consult qualified legal counsel about adult-content, privacy, copyright, and data-protection obligations.
