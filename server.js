@@ -80,6 +80,7 @@ app.post("/api/chat",async(req,res)=>{
   const messages=[{role:"system",content:system},...history.slice(-16),{role:"user",content:prompt}];
 
   try{
+    console.log("[HavanaAi] AI request", {model, url});
     const r=await fetch(url,{
       method:"POST",
       headers:{"Content-Type":"application/json","Authorization":"Bearer "+key},
@@ -94,6 +95,7 @@ app.post("/api/chat",async(req,res)=>{
     sessions.set(sessionId,history.slice(-16));
     res.json({ok:true,mode:"ai",answer,sessionId,model});
   }catch(e){
+    console.error("[HavanaAi] AI provider error:", e.message);
     res.status(502).json({error:"AI service unavailable",detail:e.message});
   }
 });
