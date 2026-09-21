@@ -1,36 +1,18 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#f6f4ef">
-  <meta name="description" content="HavanaAi — an adults-only, consent-first AI workspace.">
-  <title>HavanaAi — 18+ AI workspace</title>
-  <link rel="stylesheet" href="styles.css">
-  <link rel="stylesheet" href="safety.css">
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#0b0b12"><meta name="description" content="HavanaAi — discover, search and explore useful content with AI.">
+<link rel="manifest" href="manifest.json"><link rel="stylesheet" href="styles.css">
+<title>HavanaAi — AI Content Discovery</title>
 </head>
 <body>
-  <div class="app-shell" id="app" hidden>
-    <aside class="sidebar" aria-label="Main navigation">
-      <div class="brand"><span class="brand-mark" aria-hidden="true">✦</span><span>Havana<span class="brand-accent">Ai</span></span></div>
-      <button class="new-chat" id="newChat" type="button"><span aria-hidden="true">＋</span> New conversation</button>
-      <button class="upload-button" id="uploadButton" type="button"><span aria-hidden="true">↑</span> Upload adult video</button>
-      <input id="videoInput" type="file" accept="video/*" hidden>
-      <div class="sidebar-section"><p class="eyebrow">Workspace</p><nav><button class="nav-item active" type="button" data-view="chat">⌂ <span>Chat</span></button><button class="nav-item" type="button" data-view="saved">◈ <span>Saved prompts</span></button><button class="nav-item" type="button" data-view="settings">⚙ <span>Settings</span></button></nav></div>
-      <div class="sidebar-footer"><div class="avatar">S</div><div><strong>Soko516</strong><small>18+ personal workspace</small></div><button class="more" type="button" aria-label="More options">•••</button></div>
-    </aside>
-    <main class="main-content">
-      <header class="topbar"><div><p class="eyebrow">HAVANAAI · 18+ WORKSPACE</p><h1>Good to see you<span class="accent">.</span></h1></div><div class="header-actions"><div class="status"><span class="status-dot"></span>Ready to help</div><button class="icon-button" id="clearChat" type="button" title="Clear conversation" aria-label="Clear conversation">⌫</button></div></header>
-      <section class="chat-area" id="chatArea" aria-label="Conversation">
-        <div class="welcome" id="welcome"><div class="welcome-icon" aria-hidden="true">✦</div><p class="eyebrow">YOUR 18+ AI ASSISTANT</p><h2>What will we create today?</h2><p class="subtext">Chat, organize ideas, or upload consensual adult media for your private workflow.</p><div class="suggestions"><button type="button" data-prompt="Help me plan a new project">Plan a new project <span>→</span></button><button type="button" data-prompt="Give me three creative ideas for today">Find creative ideas <span>→</span></button><button type="button" data-prompt="Explain something simply">Explain something simply <span>→</span></button></div></div>
-        <div id="messages" class="messages" aria-live="polite"></div>
-      </section>
-      <form class="composer" id="composer"><div class="input-wrap"><textarea id="prompt" rows="1" maxlength="4000" placeholder="Message HavanaAi..." aria-label="Message HavanaAi"></textarea><button class="send" type="submit" aria-label="Send message">↑</button></div><p>18+ only. Upload only legal, consensual content featuring adults. Never upload minors or non-consensual material.</p></form>
-    </main>
-  </div>
-  <div class="age-gate" id="ageGate" role="dialog" aria-modal="true" aria-labelledby="ageTitle"><div class="age-card"><div class="age-symbol">18+</div><p class="eyebrow">RESTRICTED ADULT WORKSPACE</p><h2 id="ageTitle">You must be 18 or older</h2><p>HavanaAi is intended only for adults. By entering, you confirm that you are at least 18 and will upload only legal, consensual media featuring adults.</p><label class="consent-check"><input type="checkbox" id="ageCheck"> <span>I confirm I am 18+ and agree to the safety rules.</span></label><button class="enter-button" id="enterButton" type="button" disabled>Enter HavanaAi</button><p class="age-note">This browser gate is not legal age verification. Production deployment should add jurisdiction-appropriate identity/age verification, moderation, reporting, storage security, and deletion controls.</p></div></div>
-  <div class="upload-dialog" id="uploadDialog" role="dialog" aria-modal="true" aria-labelledby="uploadTitle" hidden><div class="upload-card"><button class="dialog-close" id="closeUpload" type="button" aria-label="Close">×</button><p class="eyebrow">CONSENT-FIRST UPLOAD</p><h2 id="uploadTitle">Upload adult video</h2><p>Only upload content you own or have permission to share. Every person shown must be 18+ and have consented to recording and sharing.</p><label class="consent-check"><input type="checkbox" id="uploadCheck"> <span>I confirm this upload follows the safety rules.</span></label><button class="enter-button" id="chooseVideo" type="button" disabled>Choose video</button><p class="age-note">Demo mode: the selected file is not sent anywhere or stored. Connect a secure backend before handling real media.</p></div></div>
-  <div class="toast" id="toast" role="status" aria-live="polite"></div>
-  <script src="app.js"></script>
-</body>
-</html>
+<header class="topbar"><a class="brand" href="#"><span class="logo">H</span><span>Havana<span>Ai</span></span></a><div class="top-actions"><button id="theme" class="ghost">☾</button><button id="newChat" class="primary small">New chat</button></div></header>
+<main>
+<section class="hero"><span class="eyebrow">AI CONTENT DISCOVERY</span><h1>Find what matters.<br><em>Faster.</em></h1><p>Search ideas, knowledge, trends and useful content, then ask HavanaAi to turn what you find into practical answers.</p>
+<div class="searchbar"><span>⌕</span><input id="search" placeholder="What do you want to discover?" autocomplete="off"><button id="searchBtn" class="primary">Search</button></div>
+<div id="chips" class="chips"></div></section>
+<section class="ai-panel"><div class="panel-title"><div class="spark">✦</div><div><b>Ask HavanaAi</b><p>Ask a question, summarize a topic, brainstorm or plan something.</p></div></div><div class="askbar"><textarea id="prompt" rows="1" placeholder="e.g. Explain AI in simple terms"></textarea><button id="askBtn" class="primary">Ask AI</button></div><div id="answer" class="answer hidden"></div></section>
+<section class="section-head"><div><span class="eyebrow">DISCOVER</span><h2>Explore content</h2></div><span id="count"></span></section><div id="results" class="grid"></div>
+</main><footer>HavanaAi · Independent from SokoAds</footer>
+<script src="app.js"></script></body></html>
