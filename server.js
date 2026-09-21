@@ -82,7 +82,7 @@ app.post("/api/chat",async(req,res)=>{
   try{
     const r=await fetch(url,{
       method:"POST",
-      headers:{"Content-Type":"application/json","Authorization:"Bearer "+key},
+      headers:{"Content-Type":"application/json","Authorization":"Bearer "+key},
       body:JSON.stringify({model,messages,temperature:mode==="quick"?0.2:0.4})
     });
     const raw=await r.text();
