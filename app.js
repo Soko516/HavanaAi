@@ -1,18 +1,26 @@
 const $=id=>document.getElementById(id);
 const categories=["All","AI","Business","Creators","Education","Technology","Africa","Design"];
 let active="All",mode="quick",pendingAttachment=null,lastAssistant="";
-const sessionId=crypto.randomUUID?crypto.randomUUID():Date.now()+"-"+Math.random();
+const sessionId=(globalThis.crypto&&typeof crypto.randomUUID==="function")?crypto.randomUUID():Date.now()+"-"+Math.random();
 const MEMORY_KEY="havanaai-memory-v1",PREF_KEY="havanaai-memory-enabled";
-let memoryEnabled=localStorage.getItem(PREF_KEY)!=="0";
+const storage={get(k){try{return localStorage.getItem(k)}catch(_){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(_){}},remove(k){try{localStorage.removeItem(k)}catch(_){}}};
+let memoryEnabled=storage.get(PREF_KEY)!=="0";
+window.addEventListener("error",e=>{const box=$("chatLog");if(box&&!box.dataset.runtimeError){box.dataset.runtimeError="1";box.classList.remove("hidden");addMessage("assistant","HavanaAi frontend error: "+(e.message||"Please refresh the page and try again."),false)}});
+window.addEventListener("unhandledrejection",e=>{const box=$("chatLog");if(box&&!box.dataset.runtimeError){box.dataset.runtimeError="1";box.classList.remove("hidden");addMessage("assistant","HavanaAi request error: "+((e.reason&&e.reason.message)||"Unknown error"),false)}});
 
 function esc(s){return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]||c))}
 function chips(){$("chips").innerHTML=categories.map(c=>`<button class="chip ${c===active?"active":""}" data-cat="${c}">${c}</button>`).join("");document.querySelectorAll("[data-cat]").forEach(b=>b.onclick=()=>{active=b.dataset.cat;chips();discover()})}
 function setMode(m){mode=m;document.querySelectorAll("[data-mode]").forEach(b=>b.classList.toggle("active",b.dataset.mode===m))}
-async function jsonFetch(url,o={}){const r=await fetch(url,o);let d={};try{d=await r.json()}catch(_){}if(!r.ok)throw new Error(d.detail?`${d.error||"Request failed"}: ${d.detail}`:(d.error||`Request failed (${r.status})`));return d}
+async function jsonFetch(url,o={}){
+  const controller=new AbortController();
+  const timer=setTimeout(()=>controller.abort(),45000);
+  o.signal=controller.signal;
+  let r;
+  try{r=await fetch(url,o)}catch(e){if(e.name==="AbortError")throw new Error("Request timed out after 45 seconds. Check the Render service/API connection.");throw new Error("Network error. Check your internet connection and Render service.");}finally{clearTimeout(timer)}let d={};try{d=await r.json()}catch(_){}if(!r.ok)throw new Error(d.detail?`${d.error||"Request failed"}: ${d.detail}`:(d.error||`Request failed (${r.status})`));return d}
 async function discover(){const q=$("search").value.trim();$("results").innerHTML='<div class="empty">Searching HavanaAi…</div>';try{const d=await jsonFetch("/api/discover?q="+encodeURIComponent(q)+"&category="+encodeURIComponent(active));$("count").textContent=d.total+" results";$("results").innerHTML=d.results.length?d.results.map(x=>`<article class="card"><span class="cat">${esc(x.category).toUpperCase()}</span><h3>${esc(x.title)}</h3><p>${esc(x.description)}</p><div class="tags">${x.tags.map(t=>`<span>#${esc(t)}</span>`).join("")}</div></article>`).join(""):'<div class="empty">No matches yet. Try another topic or category.</div>'}catch(e){$("count").textContent="";$("results").innerHTML='<div class="empty">Could not load discovery. Refresh and try again.</div>'}}
 function addMessage(role,text,save=true){const box=$("chatLog");box.classList.remove("hidden");const el=document.createElement("div");el.className="message "+role;el.innerHTML=`<div class="message-role">${role==="user"?"You":"HavanaAi"}</div><div class="message-text">${esc(text)}</div>`;box.appendChild(el);box.scrollTop=box.scrollHeight;if(role==="assistant"){lastAssistant=text;if(save&&memoryEnabled)saveMemory()}}
-function saveMemory(){const msgs=[...$("chatLog").querySelectorAll(".message")].map(x=>({role:x.classList.contains("user")?"user":"assistant",text:x.querySelector(".message-text")?.textContent||""}));localStorage.setItem(MEMORY_KEY,JSON.stringify(msgs.slice(-30)))}
-function loadMemory(){if(!memoryEnabled)return;try{const msgs=JSON.parse(localStorage.getItem(MEMORY_KEY)||"[]");if(msgs.length){msgs.forEach(m=>addMessage(m.role,m.text,false));$("chatLog").classList.remove("hidden")}}catch(_){}}
+function saveMemory(){const msgs=[...$("chatLog").querySelectorAll(".message")].map(x=>({role:x.classList.contains("user")?"user":"assistant",text:x.querySelector(".message-text")?.textContent||""}));storage.set(MEMORY_KEY,JSON.stringify(msgs.slice(-30)))}
+function loadMemory(){if(!memoryEnabled)return;try{const msgs=JSON.parse(storage.get(MEMORY_KEY)||"[]");if(msgs.length){msgs.forEach(m=>addMessage(m.role,m.text,false));$("chatLog").classList.remove("hidden")}}catch(_){}}
 function showAttachment(name,type){const a=$("attachment");a.classList.remove("hidden");a.textContent=(type==="image"?"🖼️ ":"📎 ")+name+" attached — HavanaAi will analyze it."}
 function clearAttachment(){pendingAttachment=null;$("attachment").classList.add("hidden");$("attachment").textContent=""}
 
@@ -41,7 +49,7 @@ if(SpeechRecognition){recognition=new SpeechRecognition();recognition.lang=navig
 $("voiceBtn").onclick=()=>{if(!recognition){addMessage("assistant","Voice input is not supported by this browser. Try Chrome on Android.");return}try{recognition.start()}catch(_){try{recognition.stop()}catch(__){}}};
 $("speakBtn").onclick=()=>{if(!lastAssistant){addMessage("assistant","There is no HavanaAi answer to read yet.");return}if(!("speechSynthesis"in window)){addMessage("assistant","Voice output is not supported by this browser.");return}speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(lastAssistant);u.lang=navigator.language||"en-US";speechSynthesis.speak(u)};
 
-$("memoryBtn").onclick=()=>{memoryEnabled=!memoryEnabled;localStorage.setItem(PREF_KEY,memoryEnabled?"1":"0");$("memoryBtn").textContent=memoryEnabled?"🧠 Memory ON":"🧠 Memory OFF";if(memoryEnabled)saveMemory();else localStorage.removeItem(MEMORY_KEY)};
+$("memoryBtn").onclick=()=>{memoryEnabled=!memoryEnabled;storage.set(PREF_KEY,memoryEnabled?"1":"0");$("memoryBtn").textContent=memoryEnabled?"🧠 Memory ON":"🧠 Memory OFF";if(memoryEnabled)saveMemory();else storage.remove(MEMORY_KEY)};
 $("newChat").onclick=async()=>{try{await jsonFetch("/api/reset",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({sessionId})})}catch(_){}$("chatLog").innerHTML="";$("chatLog").classList.add("hidden");$("mediaResult").classList.add("hidden");$("mediaResult").innerHTML="";clearAttachment();lastAssistant="";if(memoryEnabled)localStorage.removeItem(MEMORY_KEY);$("prompt").value="";$("prompt").focus()};
 $("theme").onclick=()=>{$("theme").textContent=document.body.classList.toggle("light")?"☀":"☾"};
 $("searchBtn").onclick=discover;
