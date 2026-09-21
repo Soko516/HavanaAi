@@ -86,20 +86,57 @@ app.post("/api/search",async(req,res)=>{
 });
 
 app.post("/api/analyze",async(req,res)=>{
-  const prompt=String(req.body?.prompt||"Analyze this input and explain what matters.").trim(),imageData=String(req.body?.imageData||"").trim(),fileData=String(req.body?.fileData||"").trim(),filename=String(req.body?.filename||"upload");
-  const {key,url,responsesUrl,model}=providerConfig();if(!key)return res.status(503).json({error:"AI provider is not configured."});
+  const prompt=String(req.body?.prompt||"Analyze this input and explain what matters.").trim();
+  const imageData=String(req.body?.imageData||"").trim();
+  const fileData=String(req.body?.fileData||"").trim();
+  const filename=String(req.body?.filename||"upload");
+  const {key,url,responsesUrl,model}=providerConfig();
+  if(!key)return res.status(503).json({error:"AI provider is not configured.",detail:"Add AI_API_KEY in Render Environment Variables."});
   try{
-    let answer;
+    let answer="";
     if(imageData){
-      const d=await postJson(url,key,{model,messages:[{role:"user",content:[{type:"text",text:prompt},{type:"image_url",image_url:{url:imageData}}]}]});
-      answer=extractAnswer(d);
+      if(!/^data:image\/(png|jpe?g|webp|gif);base64,/i.test(imageData)){
+        return res.status(400).json({error:"Invalid image format. Please upload PNG, JPG, WEBP or GIF."});
+      }
+      // Prefer the Responses API because it has first-class image input.
+      try{
+        const d=await postJson(responsesUrl,key,{
+          model,
+          input:[{role:"user",content:[
+            {type:"input_text",text:prompt},
+            {type:"input_image",image_url:imageData}
+          ]}]
+        });
+        answer=responseText(d);
+      }catch(visionError){
+        console.warn("[HavanaAi] Responses vision failed, trying chat vision:",visionError.message);
+        const d=await postJson(url,key,{
+          model,
+          messages:[{role:"user",content:[
+            {type:"text",text:prompt},
+            {type:"image_url",image_url:{url:imageData,detail:"auto"}}
+          ]}]
+        });
+        answer=extractAnswer(d);
+      }
     }else if(fileData){
-      const d=await postJson(responsesUrl,key,{model,input:[{role:"user",content:[{type:"input_text",text:prompt},{type:"input_file",filename,file_data:fileData}]}]});
+      const d=await postJson(responsesUrl,key,{
+        model,
+        input:[{role:"user",content:[
+          {type:"input_text",text:prompt},
+          {type:"input_file",filename,file_data:fileData}
+        ]}]
+      });
       answer=responseText(d);
-    }else return res.status(400).json({error:"No image or file was provided."});
+    }else{
+      return res.status(400).json({error:"No image or file was provided."});
+    }
     if(!answer)throw new Error("Analysis returned an empty response.");
     res.json({ok:true,answer,filename,model});
-  }catch(e){console.error("[HavanaAi] analysis error:",e.message);res.status(502).json({error:"Analysis unavailable",detail:e.message});}
+  }catch(e){
+    console.error("[HavanaAi] analysis error:",e.message);
+    res.status(502).json({error:"Analysis unavailable",detail:e.message});
+  }
 });
 
 app.post("/api/image",async(req,res)=>{
