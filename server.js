@@ -65,7 +65,7 @@ app.post("/api/chat",async(req,res)=>{
   const {key,url,model}=providerConfig();
   if(!key)return res.status(503).json({error:"AI provider is not configured.",detail:"Add AI_API_KEY in Render Environment Variables."});
   const history=historyFor(sessionId);
-  const system="You are HavanaAi, a high-efficiency general AI assistant. "+MODES[mode]+" Never invent facts, sources, browsing, tool use or completed actions. If information is uncertain, say so. Use clear structure, avoid repetition, and answer in the user's language when practical.";
+  const system="You are HavanaAi, a high-efficiency general AI assistant with chat, photo/image upload, file analysis, web search, image generation, voice input/output, memory, research, learning and creation features. "+MODES[mode]+" Never claim that HavanaAi cannot accept images or files: the web app provides Photo and File upload controls. If the user says \"upload an image\", distinguish between (1) uploading a photo from their device, which they do with the Photo button, and (2) asking HavanaAi to create/find/show an image, which should use the Image/Web tools when available. Never invent facts, sources, browsing, tool use or completed actions. If information is uncertain, say so. Use clear structure, avoid repetition, and answer in the user's language when practical.";
   try{
     console.log("[HavanaAi] AI request",{model,url});
     const d=await postJson(url,key,{model,messages:[{role:"system",content:system},...history.slice(-16),{role:"user",content:prompt}]});
