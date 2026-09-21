@@ -28,9 +28,9 @@ create:"Act as a creative and product strategist. Produce concrete options, trad
 const historyFor=id=>{const k=String(id||"default");if(!sessions.has(k))sessions.set(k,[]);return sessions.get(k);};
 
 function providerConfig(){
-  const key=process.env.AI_API_KEY||process.env.OPENAI_API_KEY;
-  const url=process.env.AI_API_URL||"https://api.openai.com/v1/chat/completions";
-  const model=process.env.AI_MODEL||"gpt-4o-mini";
+  const key=process.env.AI_API_KEY||process.env.OPENAI_API_KEY||process.env.API_KEY;
+  const url=process.env.AI_API_URL||process.env.OPENAI_API_URL||"https://api.openai.com/v1/chat/completions";
+  const model=process.env.AI_MODEL||process.env.OPENAI_MODEL||"gpt-4o-mini";
   return {key,url,model};
 }
 function extractAnswer(d){
@@ -69,7 +69,7 @@ app.post("/api/chat",async(req,res)=>{
   if(!key){
     return res.status(503).json({
       error:"AI provider is not configured.",
-      detail:"Add AI_API_KEY (and optionally AI_API_URL and AI_MODEL) in Render Environment Variables."
+      detail:"Add AI_API_KEY (or OPENAI_API_KEY/API_KEY) and optionally AI_API_URL/AI_MODEL in Render Environment Variables."
     });
   }
 
