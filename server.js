@@ -3,8 +3,7 @@ const path=require("path");
 const crypto=require("crypto");
 const app=express();
 const PORT=process.env.PORT||10000;
-// HavanaAi production deployment syntax verified.
-app.use(express.json({limit:"2mb"}));
+app.use(express.json({limit:"15mb"}));
 app.use(express.static(__dirname));
 
 const items=[
@@ -30,80 +29,89 @@ const historyFor=id=>{const k=String(id||"default");if(!sessions.has(k))sessions
 function providerConfig(){
   const key=process.env.AI_API_KEY||process.env.OPENAI_API_KEY||process.env.API_KEY;
   const url=process.env.AI_API_URL||process.env.OPENAI_API_URL||"https://api.openai.com/v1/chat/completions";
+  const responsesUrl=process.env.AI_RESPONSES_URL||process.env.OPENAI_RESPONSES_URL||"https://api.openai.com/v1/responses";
   const model=process.env.AI_MODEL||process.env.OPENAI_MODEL||"gpt-4o-mini";
-  return {key,url,model};
+  const imageModel=process.env.AI_IMAGE_MODEL||"gpt-image-1";
+  const imageUrl=process.env.AI_IMAGE_URL||"https://api.openai.com/v1/images/generations";
+  return {key,url,responsesUrl,model,imageModel,imageUrl};
 }
-function extractAnswer(d){
-  return d?.choices?.[0]?.message?.content||d?.output_text||d?.response?.output_text||"";
+function extractAnswer(d){return d?.choices?.[0]?.message?.content||d?.output_text||d?.response?.output_text||"";}
+async function postJson(url,key,body){
+  const r=await fetch(url,{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+key},body:JSON.stringify(body)});
+  const raw=await r.text();let d={};try{d=JSON.parse(raw)}catch(_){}
+  if(!r.ok)throw new Error(d?.error?.message||("Provider returned HTTP "+r.status));
+  return d;
+}
+function responseText(d){
+  if(d?.output_text)return d.output_text;
+  const parts=[];
+  for(const item of (d?.output||[])) for(const c of (item?.content||[])) if(c?.type==="output_text"&&c.text) parts.push(c.text);
+  return parts.join("\n").trim();
 }
 
-app.get("/api/health",(req,res)=>res.json({
-  ok:true,app:"HavanaAi",version:"3.0.0",
-  capabilities:["chat","multi-turn memory","research mode","learning mode","creation mode","content discovery","PWA"]
-}));
-
-app.get("/api/config",(req,res)=>res.json({ok:true,aiConfigured:Boolean(providerConfig().key),model:providerConfig().model}));
+app.get("/api/health",(req,res)=>res.json({ok:true,app:"HavanaAi",version:"4.0.0",capabilities:["chat","memory","web search","image understanding","file/PDF analysis","image generation","voice input","voice output","research mode","learning mode","creation mode","content discovery","tools","PWA"]}));
+app.get("/api/config",(req,res)=>{const c=providerConfig();res.json({ok:true,aiConfigured:Boolean(c.key),model:c.model,features:{webSearch:true,vision:true,fileAnalysis:true,imageGeneration:true}});});
 
 app.get("/api/discover",(req,res)=>{
-  const q=String(req.query.q||"").trim().toLowerCase();
-  const cat=String(req.query.category||"All");
+  const q=String(req.query.q||"").trim().toLowerCase(),cat=String(req.query.category||"All");
   let out=items.filter(x=>cat==="All"||x.category===cat);
-  if(q){
-    const words=q.split(/\s+/).filter(Boolean);
-    out=out.map(x=>{
-      const hay=[x.title,x.description,x.category,...x.tags].join(" ").toLowerCase();
-      const score=words.reduce((n,w)=>n+(hay.includes(w)?1:0),0);
-      return {...x,score};
-    }).filter(x=>x.score>0).sort((a,b)=>b.score-a.score);
-  }
+  if(q){const words=q.split(/\s+/).filter(Boolean);out=out.map(x=>{const hay=[x.title,x.description,x.category,...x.tags].join(" ").toLowerCase();const score=words.reduce((n,w)=>n+(hay.includes(w)?1:0),0);return {...x,score};}).filter(x=>x.score>0).sort((a,b)=>b.score-a.score);}
   res.json({query:q,category:cat,total:out.length,results:out});
 });
 
 app.post("/api/chat",async(req,res)=>{
-  const prompt=String(req.body?.prompt||"").trim();
-  const mode=MODES[req.body?.mode]?req.body.mode:"quick";
-  const sessionId=String(req.body?.sessionId||crypto.randomUUID());
+  const prompt=String(req.body?.prompt||"").trim(),mode=MODES[req.body?.mode]?req.body.mode:"quick",sessionId=String(req.body?.sessionId||crypto.randomUUID());
   if(!prompt)return res.status(400).json({error:"Prompt is required."});
-
   const {key,url,model}=providerConfig();
-  if(!key){
-    return res.status(503).json({
-      error:"AI provider is not configured.",
-      detail:"Add AI_API_KEY (or OPENAI_API_KEY/API_KEY) and optionally AI_API_URL/AI_MODEL in Render Environment Variables."
-    });
-  }
-
+  if(!key)return res.status(503).json({error:"AI provider is not configured.",detail:"Add AI_API_KEY in Render Environment Variables."});
   const history=historyFor(sessionId);
-  const system="You are HavanaAi, a high-efficiency general AI assistant. "+MODES[mode]+
-    " Never invent facts, sources, browsing, tool use or completed actions. If information is uncertain, say so. "+
-    "Use clear structure, avoid repetition, and prioritize useful outcomes. Answer in the user's language when practical.";
-  const messages=[{role:"system",content:system},...history.slice(-16),{role:"user",content:prompt}];
-
+  const system="You are HavanaAi, a high-efficiency general AI assistant. "+MODES[mode]+" Never invent facts, sources, browsing, tool use or completed actions. If information is uncertain, say so. Use clear structure, avoid repetition, and answer in the user's language when practical.";
   try{
-    console.log("[HavanaAi] AI request", {model, url});
-    const r=await fetch(url,{
-      method:"POST",
-      headers:{"Content-Type":"application/json","Authorization":"Bearer "+key},
-      body:JSON.stringify({model,messages})
-    });
-    const raw=await r.text();
-    let d={}; try{d=JSON.parse(raw)}catch(_){}
-    if(!r.ok)throw new Error(d?.error?.message||("Provider returned HTTP "+r.status));
-    const answer=extractAnswer(d);
-    if(!answer)throw new Error("Provider returned an empty response.");
-    history.push({role:"user",content:prompt},{role:"assistant",content:answer});
-    sessions.set(sessionId,history.slice(-16));
+    console.log("[HavanaAi] AI request",{model,url});
+    const d=await postJson(url,key,{model,messages:[{role:"system",content:system},...history.slice(-16),{role:"user",content:prompt}]});
+    const answer=extractAnswer(d);if(!answer)throw new Error("Provider returned an empty response.");
+    history.push({role:"user",content:prompt},{role:"assistant",content:answer});sessions.set(sessionId,history.slice(-16));
     res.json({ok:true,mode:"ai",answer,sessionId,model});
-  }catch(e){
-    console.error("[HavanaAi] AI provider error:", e.message);
-    res.status(502).json({error:"AI service unavailable",detail:e.message});
-  }
+  }catch(e){console.error("[HavanaAi] AI provider error:",e.message);res.status(502).json({error:"AI service unavailable",detail:e.message});}
 });
 
-app.post("/api/reset",(req,res)=>{
-  sessions.delete(String(req.body?.sessionId||"default"));
-  res.json({ok:true});
+app.post("/api/search",async(req,res)=>{
+  const prompt=String(req.body?.prompt||"").trim();if(!prompt)return res.status(400).json({error:"Search query is required."});
+  const {key,responsesUrl,model}=providerConfig();if(!key)return res.status(503).json({error:"AI provider is not configured."});
+  try{
+    const d=await postJson(responsesUrl,key,{model,input:prompt,tools:[{type:"web_search"}],include:["web_search_call.action.sources"]});
+    const answer=responseText(d);if(!answer)throw new Error("Search returned an empty response.");
+    res.json({ok:true,answer,model});
+  }catch(e){console.error("[HavanaAi] web search error:",e.message);res.status(502).json({error:"Web search unavailable",detail:e.message});}
 });
 
+app.post("/api/analyze",async(req,res)=>{
+  const prompt=String(req.body?.prompt||"Analyze this input and explain what matters.").trim(),imageData=String(req.body?.imageData||"").trim(),fileData=String(req.body?.fileData||"").trim(),filename=String(req.body?.filename||"upload");
+  const {key,url,responsesUrl,model}=providerConfig();if(!key)return res.status(503).json({error:"AI provider is not configured."});
+  try{
+    let answer;
+    if(imageData){
+      const d=await postJson(url,key,{model,messages:[{role:"user",content:[{type:"text",text:prompt},{type:"image_url",image_url:{url:imageData}}]}]});
+      answer=extractAnswer(d);
+    }else if(fileData){
+      const d=await postJson(responsesUrl,key,{model,input:[{role:"user",content:[{type:"input_text",text:prompt},{type:"input_file",filename,file_data:fileData}]}]});
+      answer=responseText(d);
+    }else return res.status(400).json({error:"No image or file was provided."});
+    if(!answer)throw new Error("Analysis returned an empty response.");
+    res.json({ok:true,answer,filename,model});
+  }catch(e){console.error("[HavanaAi] analysis error:",e.message);res.status(502).json({error:"Analysis unavailable",detail:e.message});}
+});
+
+app.post("/api/image",async(req,res)=>{
+  const prompt=String(req.body?.prompt||"").trim();if(!prompt)return res.status(400).json({error:"Image prompt is required."});
+  const {key,imageUrl,imageModel}=providerConfig();if(!key)return res.status(503).json({error:"AI provider is not configured."});
+  try{
+    const d=await postJson(imageUrl,key,{model:imageModel,prompt,n:1,size:"1024x1024"});
+    const image=d?.data?.[0];if(!image)throw new Error("Image provider returned no image.");
+    res.json({ok:true,image:image.url||("data:image/png;base64,"+image.b64_json),revisedPrompt:image.revised_prompt||"",model:imageModel});
+  }catch(e){console.error("[HavanaAi] image generation error:",e.message);res.status(502).json({error:"Image generation unavailable",detail:e.message});}
+});
+
+app.post("/api/reset",(req,res)=>{sessions.delete(String(req.body?.sessionId||"default"));res.json({ok:true});});
 app.get("*",(req,res)=>res.sendFile(path.join(__dirname,"index.html")));
 app.listen(PORT,()=>console.log("HavanaAi listening on "+PORT));
