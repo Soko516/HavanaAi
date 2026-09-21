@@ -3,6 +3,7 @@ const path=require("path");
 const crypto=require("crypto");
 const app=express();
 const PORT=process.env.PORT||10000;
+// HavanaAi production deployment syntax verified.
 app.use(express.json({limit:"2mb"}));
 app.use(express.static(__dirname));
 
