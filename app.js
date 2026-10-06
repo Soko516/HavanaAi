@@ -24,13 +24,19 @@ function loadMemory(){if(!memoryEnabled)return;try{const msgs=JSON.parse(storage
 function showAttachment(name,type){const a=$("attachment");a.classList.remove("hidden");a.textContent=(type==="image"?"🖼️ ":"📎 ")+name+" attached — HavanaAi will analyze it."}
 function clearAttachment(){pendingAttachment=null;$("attachment").classList.add("hidden");$("attachment").textContent=""}
 
-async function ask(){const prompt=$("prompt").value.trim();if(!prompt&&!pendingAttachment)return;const b=$("askBtn");b.disabled=true;if(prompt)addMessage("user",prompt);$("prompt").value="";$("prompt").style.height="auto";const thinking=document.createElement("div");thinking.className="message assistant thinking";thinking.textContent="HavanaAi is thinking…";$("chatLog").appendChild(thinking);
+async function ask(){
+  const prompt=$("prompt").value.trim();
+  if(!prompt&&!pendingAttachment){$("prompt").focus();return;}
+  const b=$("askBtn");
+  b.disabled=true;
+  b.textContent="Thinking…";
+  $("chatLog").classList.remove("hidden");if(prompt)addMessage("user",prompt);$("prompt").value="";$("prompt").style.height="auto";const thinking=document.createElement("div");thinking.className="message assistant thinking";thinking.textContent="HavanaAi is thinking…";$("chatLog").appendChild(thinking);
 try{
   let d;
   if(pendingAttachment){d=await jsonFetch("/api/analyze",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt:prompt||"Analyze this file/image and explain the important details clearly.",imageData:pendingAttachment.kind==="image"?pendingAttachment.data:"",fileData:pendingAttachment.kind==="file"?pendingAttachment.data:"",filename:pendingAttachment.name})})}
   else d=await jsonFetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt,mode,sessionId})});
   thinking.remove();addMessage("assistant",d.answer);clearAttachment();if(memoryEnabled)saveMemory();
-}catch(e){thinking.remove();addMessage("assistant","I couldn't complete that request: "+e.message)}finally{b.disabled=false;$("prompt").focus()}}
+}catch(e){thinking.remove();addMessage("assistant","I couldn't complete that request: "+e.message)}finally{b.disabled=false;b.textContent="Run";$("prompt").focus()}}
 
 window.ask=ask;
 async function webSearch(){const q=$("prompt").value.trim();if(!q){$("prompt").focus();$("prompt").placeholder="Type what you want me to search on the web…";return}$("askBtn").disabled=true;addMessage("user","🌐 Web search: "+q);$("prompt").value="";const t=document.createElement("div");t.className="message assistant thinking";t.textContent="Searching the web…";$("chatLog").appendChild(t);try{const d=await jsonFetch("/api/search",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt:q})});t.remove();addMessage("assistant",d.answer)}catch(e){t.remove();addMessage("assistant","Web search failed: "+e.message)}finally{$("askBtn").disabled=false}}
@@ -93,6 +99,8 @@ $("prompt").oninput=()=>{$("prompt").style.height="auto";$("prompt").style.heigh
 document.querySelectorAll("[data-mode]").forEach(b=>b.onclick=()=>setMode(b.dataset.mode));
 if("serviceWorker"in navigator)navigator.serviceWorker.register("/sw.js").catch(()=>{});
 async function checkBackend(){
+  $("askBtn").disabled=false;
+  $("askBtn").textContent="Run";
   try{
     const d=await jsonFetch("/api/config",{cache:"no-store"});
     if(!d.aiConfigured){
@@ -102,4 +110,13 @@ async function checkBackend(){
     addMessage("assistant","HavanaAi connection check failed: "+e.message);
   }
 }
-setMode("quick");chips();discover();$("memoryBtn").textContent=memoryEnabled?"🧠 Memory ON":"🧠 Memory OFF";loadMemory();checkBackend();
+function bootHavana(){
+  setMode("quick");
+  chips();
+  discover();
+  $("memoryBtn").textContent=memoryEnabled?"🧠 Memory ON":"🧠 Memory OFF";
+  loadMemory();
+  checkBackend();
+}
+if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",bootHavana);
+else bootHavana();
