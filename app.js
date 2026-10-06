@@ -92,4 +92,14 @@ $("prompt").onkeydown=e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();as
 $("prompt").oninput=()=>{$("prompt").style.height="auto";$("prompt").style.height=Math.min($("prompt").scrollHeight,150)+"px"};
 document.querySelectorAll("[data-mode]").forEach(b=>b.onclick=()=>setMode(b.dataset.mode));
 if("serviceWorker"in navigator)navigator.serviceWorker.register("/sw.js").catch(()=>{});
-setMode("quick");chips();discover();$("memoryBtn").textContent=memoryEnabled?"🧠 Memory ON":"🧠 Memory OFF";loadMemory();
+async function checkBackend(){
+  try{
+    const d=await jsonFetch("/api/config",{cache:"no-store"});
+    if(!d.aiConfigured){
+      addMessage("assistant","HavanaAi is connected to Render, but the AI API key is not configured. Add AI_API_KEY or OPENAI_API_KEY in Render Environment Variables, then redeploy.");
+    }
+  }catch(e){
+    addMessage("assistant","HavanaAi connection check failed: "+e.message);
+  }
+}
+setMode("quick");chips();discover();$("memoryBtn").textContent=memoryEnabled?"🧠 Memory ON":"🧠 Memory OFF";loadMemory();checkBackend();
