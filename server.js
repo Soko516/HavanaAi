@@ -177,4 +177,4 @@ app.get("/api/business/orders",(req,res)=>{
 });
 
 app.get("*",(req,res)=>res.sendFile(path.join(__dirname,"index.html")));
-app.listen(PORT,()=>console.log("HavanaAi listening on "+PORT));
+app.listen(PORT,"0.0.0.0",()=>console.log("HavanaAi listening on 0.0.0.0:"+PORT));
