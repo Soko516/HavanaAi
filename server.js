@@ -50,7 +50,7 @@ function responseText(d){
 }
 
 app.get("/api/health",(req,res)=>res.json({ok:true,app:"HavanaAi",version:"4.0.0",capabilities:["chat","memory","web search","image understanding","file/PDF analysis","image generation","voice input","voice output","research mode","learning mode","creation mode","content discovery","tools","PWA"]}));
-app.get("/api/config",(req,res)=>{const c=providerConfig();res.json({ok:true,aiConfigured:Boolean(c.key),model:c.model,features:{webSearch:true,vision:true,fileAnalysis:true,imageGeneration:true}});});
+app.get("/api/config",(req,res)=>{const c=providerConfig();res.json({ok:true,aiConfigured:Boolean(c.key),model:c.model,features:{webSearch:true,vision:true,fileAnalysis:true,imageGeneration:true},endpoints:{chat:c.url,responses:c.responsesUrl}});});
 
 app.get("/api/discover",(req,res)=>{
   const q=String(req.query.q||"").trim().toLowerCase(),cat=String(req.query.category||"All");
@@ -68,8 +68,20 @@ app.post("/api/chat",async(req,res)=>{
   const system="You are HavanaAi, a high-efficiency general AI assistant with chat, photo/image upload, file analysis, web search, image generation, voice input/output, memory, research, learning and creation features. "+MODES[mode]+" Never claim that HavanaAi cannot accept images or files: the web app provides Photo and File upload controls. If the user says \"upload an image\", distinguish between (1) uploading a photo from their device, which they do with the Photo button, and (2) asking HavanaAi to create/find/show an image, which should use the Image/Web tools when available. Never invent facts, sources, browsing, tool use or completed actions. If information is uncertain, say so. Use clear structure, avoid repetition, and answer in the user's language when practical.";
   try{
     console.log("[HavanaAi] AI request",{model,url});
-    const d=await postJson(url,key,{model,messages:[{role:"system",content:system},...history.slice(-16),{role:"user",content:prompt}]});
-    const answer=extractAnswer(d);if(!answer)throw new Error("Provider returned an empty response.");
+    let answer="";
+    try{
+      const d=await postJson(url,key,{model,messages:[{role:"system",content:system},...history.slice(-16),{role:"user",content:prompt}]});
+      answer=extractAnswer(d);
+    }catch(chatError){
+      console.warn("[HavanaAi] Chat Completions failed, trying Responses API:",chatError.message);
+      const d=await postJson(responsesUrl,key,{model,input:[
+        {role:"system",content:system},
+        ...history.slice(-16).map(m=>({role:m.role,content:m.content})),
+        {role:"user",content:prompt}
+      ]});
+      answer=responseText(d);
+    }
+    if(!answer)throw new Error("Provider returned an empty response.");
     history.push({role:"user",content:prompt},{role:"assistant",content:answer});sessions.set(sessionId,history.slice(-16));
     res.json({ok:true,mode:"ai",answer,sessionId,model});
   }catch(e){console.error("[HavanaAi] AI provider error:",e.message);res.status(502).json({error:"AI service unavailable",detail:e.message});}
